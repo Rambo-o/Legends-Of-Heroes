@@ -7,6 +7,22 @@ using Unity.Mathematics;
 namespace ET
 {
 
+    [Invoke(TimerInvokeType.BulletLifeTimeout)]
+    public class BulletLifeTimeout : ATimer<BulletComponent>
+    {
+        protected override void Run(BulletComponent self)
+        {
+            try
+            {
+                self.DomainScene().GetComponent<UnitComponent>()?.Remove(self.GetParent<Unit>().Id);
+            }
+            catch (Exception e)
+            {
+                Log.Error($"move timer error: {self.Id}\n{e}");
+            }
+        }
+    }
+
     [ObjectSystem]
     public class BulletAwakeSystem : AwakeSystem<BulletComponent>
     {
@@ -29,8 +45,7 @@ namespace ET
     {
         protected override void Destroy(BulletComponent self)
         {
-            
-            
+            TimerComponent.Instance.Remove(ref self.Timer);
         }
     }
     [FriendOf(typeof(BulletComponent))]
@@ -39,8 +54,7 @@ namespace ET
         public static void Awake(this BulletComponent self)
         {
             //测试子弹，生存时间700ms
-
-            self.EndTime = TimeInfo.Instance.ServerNow() + 1000;
+            self.Timer = TimerComponent.Instance.NewOnceTimer(TimeHelper.ServerNow() + 700, TimerInvokeType.BulletLifeTimeout, self);
 
         }
 
@@ -56,10 +70,7 @@ namespace ET
         /// <param name="self"></param>
         public static void FixedUpdate(this BulletComponent self)
         {
-            if (TimeInfo.Instance.ServerNow() > self.EndTime)
-            {
-                self.DomainScene().GetComponent<UnitComponent>()?.Remove(self.GetParent<Unit>().Id);
-            }
+            
         }
 
     }
